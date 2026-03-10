@@ -1,58 +1,94 @@
 # birdie69-web
 
-> Next.js 14+ web application + Capacitor mobile wrapper for **birdie69**.
+> Status: **Scaffold complete (Day 5)** · [birdie69](https://github.com/birdie69)
 
-**Status:** Scaffold pending (Day 5)
+Next.js 14 App Router frontend for the birdie69 couples app. Targets web, iOS, and Android via Capacitor.
 
 ---
 
-## Overview
+## Stack
 
-Single codebase serving:
-- **Web:** Deployed as Next.js app (Azure Static Web Apps or Container App)
-- **iOS:** Capacitor wraps the Next.js build into a native iOS app shell
-- **Android:** Capacitor wraps the Next.js build into a native Android app shell
-
-## Tech Stack
-
-| Component | Technology |
-|-----------|-----------|
-| Framework | Next.js 14+ (App Router) |
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 14 (App Router, TypeScript) |
 | Styling | Tailwind CSS + shadcn/ui |
-| Mobile | Capacitor 6+ |
-| Auth | MSAL (Azure AD B2C) |
-| State | React Query (server state) + Zustand (client state) |
-| Testing | Vitest + Testing Library + Playwright |
+| Auth | MSAL (`@azure/msal-browser` / `@azure/msal-react`) — Azure AD B2C stub |
+| Server state | TanStack Query |
+| Client state | Zustand |
+| Mobile | Capacitor (iOS + Android) |
+| Testing | Vitest + Testing Library |
 
-## Architecture
+---
 
-See [ADR-001: Mobile Capacitor](https://github.com/learn-claude/birdie69-docs/blob/main/adrs/ADR-001-mobile-capacitor.md)
-
-## Prerequisites
-
-- Node.js 20+
-- Xcode (for iOS build)
-- Android Studio (for Android build)
-
-## Development
+## Getting started
 
 ```bash
-npm install
+# Prerequisites: Node 20 (use nvm)
+nvm use
 
-# Web dev server
+cp .env.local.example .env.local
+# Edit .env.local with your credentials
+
+npm install --legacy-peer-deps
 npm run dev
-
-# Build for Capacitor
-npm run build
-npx cap sync
-
-# Open in Xcode
-npx cap open ios
-
-# Open in Android Studio
-npx cap open android
 ```
 
-## Jira
+Open [http://localhost:3000](http://localhost:3000).
 
-[B69 Project](https://narwhal.atlassian.net/projects/B69) — Ticket: B69-4
+---
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production static export (`out/`) |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+
+---
+
+## Capacitor (mobile)
+
+After `npm run build`, the static output is in `out/`. Add native platforms:
+
+```bash
+npx cap add ios
+npx cap add android
+npx cap sync
+npx cap open ios      # opens Xcode
+npx cap open android  # opens Android Studio
+```
+
+---
+
+## Environment variables
+
+See `.env.local.example` for all required variables.
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_MSAL_CLIENT_ID` | Azure AD B2C application (client) ID |
+| `NEXT_PUBLIC_MSAL_AUTHORITY` | B2C authority URL |
+| `NEXT_PUBLIC_MSAL_REDIRECT_URI` | OAuth redirect URI |
+| `NEXT_PUBLIC_API_BASE_URL` | birdie69-api base URL |
+
+---
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx          # Root layout (AuthProvider)
+│   ├── page.tsx            # Home — Today's Question
+│   ├── login/page.tsx      # Login page (MSAL)
+│   └── (auth)/layout.tsx   # Protected layout (redirect if unauthenticated)
+├── lib/auth/
+│   ├── msalConfig.ts       # MSAL PublicClientApplication config
+│   ├── msalInstance.ts     # Singleton MSAL instance
+│   └── AuthProvider.tsx    # MsalProvider + QueryClientProvider
+├── components/ui/          # shadcn/ui components
+└── __tests__/
+    └── HomePage.test.tsx   # Vitest unit tests
+```
