@@ -2,10 +2,6 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import HomePage from "@/app/page";
 
-/**
- * Mock MSAL hooks so the test doesn't need a real PublicClientApplication.
- * useIsAuthenticated returns false by default → unauthenticated branch is rendered.
- */
 vi.mock("@azure/msal-react", () => ({
   useIsAuthenticated: () => false,
   useMsal: () => ({ instance: { loginRedirect: vi.fn() }, inProgress: "none" }),
@@ -16,10 +12,16 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
-describe("HomePage", () => {
-  it("renders the Today's Question heading", () => {
+vi.mock("@/lib/api/couples", () => ({
+  getMyCouple: vi.fn().mockResolvedValue(null),
+  createInvite: vi.fn(),
+  leaveCouple: vi.fn(),
+}));
+
+describe("HomePage (unauthenticated)", () => {
+  it("renders the birdie69 heading", () => {
     render(<HomePage />);
-    expect(screen.getByText("Today's Question")).toBeInTheDocument();
+    expect(screen.getByText("birdie69")).toBeInTheDocument();
   });
 
   it("shows a sign-in prompt when not authenticated", () => {
