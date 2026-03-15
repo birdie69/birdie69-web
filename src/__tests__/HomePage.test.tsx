@@ -21,7 +21,13 @@ vi.mock("@/lib/api/couples", () => ({
   leaveCouple: vi.fn(),
 }));
 
+vi.mock("@/lib/api/users", () => ({
+  getMe: vi.fn().mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null }),
+  upsertMe: vi.fn(),
+}));
+
 import { getMyCouple } from "@/lib/api/couples";
+import { getMe } from "@/lib/api/users";
 
 const activeCouple: CoupleDto = {
   id: "couple-1",
@@ -36,6 +42,7 @@ describe("HomePage (unauthenticated)", () => {
   beforeEach(() => {
     mockUseIsAuthenticated.mockReturnValue(false);
     vi.mocked(getMyCouple).mockResolvedValue(null);
+    vi.mocked(getMe).mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null });
   });
 
   it("renders the birdie69 heading", () => {
@@ -52,6 +59,7 @@ describe("HomePage (unauthenticated)", () => {
 describe("HomePage (active couple)", () => {
   beforeEach(() => {
     mockUseIsAuthenticated.mockReturnValue(true);
+    vi.mocked(getMe).mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null });
     vi.mocked(getMyCouple).mockResolvedValue(activeCouple);
   });
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyCouple, createInvite, leaveCouple } from "@/lib/api/couples";
+import { getMe } from "@/lib/api/users";
 import { useIsAuth } from "@/lib/auth/useIsAuth";
 import { getDevIdentity } from "@/lib/auth/devIdentity";
 import type { CoupleDto } from "@/lib/api/types";
@@ -26,16 +27,34 @@ export default function HomePage() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    getMyCouple()
-      .then((data) => {
-        setCouple(data);
-        if (!data) setCoupleState("none");
-        else if (data.status === "Pending") setCoupleState("pending");
-        else if (data.status === "Active") setCoupleState("active");
-        else setCoupleState("none");
-      })
-      .catch(() => setCoupleState("none"));
-  }, [isAuthenticated]);
+    // Profile check first — if the user has no DB record yet, send them to onboarding.
+    getMe().then((profile) => {
+      if (profile === null) {
+        router.replace("/onboarding");
+        return;
+      }
+      getMyCouple()
+        .then((data) => {
+          setCouple(data);
+          if (!data) setCoupleState("none");
+          else if (data.status === "Pending") setCoupleState("pending");
+          else if (data.status === "Active") setCoupleState("active");
+          else setCoupleState("none");
+        })
+        .catch(() => setCoupleState("none"));
+    }).catch(() => {
+      // Network error — skip profile check, proceed to couple state
+      getMyCouple()
+        .then((data) => {
+          setCouple(data);
+          if (!data) setCoupleState("none");
+          else if (data.status === "Pending") setCoupleState("pending");
+          else if (data.status === "Active") setCoupleState("active");
+          else setCoupleState("none");
+        })
+        .catch(() => setCoupleState("none"));
+    });
+  }, [isAuthenticated, router]);
 
   const handleCopy = async () => {
     if (!couple?.inviteCode) return;
