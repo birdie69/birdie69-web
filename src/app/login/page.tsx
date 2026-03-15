@@ -1,9 +1,10 @@
 "use client";
 
-import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { useMsal } from "@azure/msal-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginRequest } from "@/lib/auth/msalConfig";
+import { useIsAuth } from "@/lib/auth/useIsAuth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,9 +14,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
+
 export default function LoginPage() {
   const { instance } = useMsal();
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -25,6 +28,10 @@ export default function LoginPage() {
   }, [isAuthenticated, router]);
 
   const handleLogin = () => {
+    if (DEV_MODE) {
+      router.replace("/");
+      return;
+    }
     instance.loginRedirect(loginRequest).catch(console.error);
   };
 

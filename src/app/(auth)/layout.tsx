@@ -8,9 +8,12 @@ import { getMe } from "@/lib/api/users";
 
 type ProfileState = "loading" | "ready" | "missing";
 
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
+
 /**
  * Protected layout:
  * 1. Waits for MSAL to settle — redirects to /login if not authenticated.
+ *    In DEV_MODE this check is skipped; the API accepts "dev" as a bearer token.
  * 2. Checks whether the user has a profile in our DB:
  *    - 404 → redirects to /onboarding (first time setup)
  *    - 200 → renders children
@@ -21,21 +24,25 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isAuthenticated = useIsAuthenticated();
+  const msalIsAuthenticated = useIsAuthenticated();
+  const isAuthenticated = DEV_MODE || msalIsAuthenticated;
   const { inProgress } = useMsal();
   const router = useRouter();
   const [profileState, setProfileState] = useState<ProfileState>("loading");
 
-  // Redirect to /login if MSAL finishes and user is not authenticated
+  // Redirect to /login if MSAL finishes and user is not authenticated (skipped in dev mode)
   useEffect(() => {
-    if (!isAuthenticated && inProgress === InteractionStatus.None) {
+    if (DEV_MODE) return;
+    if (!msalIsAuthenticated && inProgress === InteractionStatus.None) {
       router.replace("/login");
     }
-  }, [isAuthenticated, inProgress, router]);
+  }, [msalIsAuthenticated, inProgress, router]);
 
   // Once authenticated, check whether a DB profile exists
   useEffect(() => {
-    if (!isAuthenticated || inProgress !== InteractionStatus.None) return;
+    if (profileState !== "loading") return;
+    // In dev mode skip the MSAL gate; in prod wait for MSAL to confirm auth
+    if (!DEV_MODE && (!msalIsAuthenticated || inProgress !== InteractionStatus.None)) return;
 
     getMe()
       .then((profile) => {
@@ -50,7 +57,7 @@ export default function AuthLayout({
         // Network / unexpected error — show content anyway (graceful degradation)
         setProfileState("ready");
       });
-  }, [isAuthenticated, inProgress, router]);
+  }, [msalIsAuthenticated, inProgress, router, profileState]);
 
   if (!isAuthenticated || profileState === "loading") {
     return (

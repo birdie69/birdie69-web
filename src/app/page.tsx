@@ -1,17 +1,17 @@
 "use client";
 
-import { useIsAuthenticated } from "@azure/msal-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyCouple, createInvite, leaveCouple } from "@/lib/api/couples";
+import { useIsAuth } from "@/lib/auth/useIsAuth";
 import type { CoupleDto } from "@/lib/api/types";
 
 type CoupleState = "loading" | "none" | "pending" | "active";
 
 export default function HomePage() {
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuth();
   const router = useRouter();
 
   const [couple, setCouple] = useState<CoupleDto | null>(null);
