@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIsAuthenticated } from "@azure/msal-react";
+import { useIsAuth } from "@/lib/auth/useIsAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createInvite, leaveCouple } from "@/lib/api/couples";
 
 export default function InvitePage() {
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuth();
   const router = useRouter();
 
   const [inviteCode, setInviteCode] = useState<string | null>(null);

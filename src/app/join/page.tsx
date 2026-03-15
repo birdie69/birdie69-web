@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useIsAuthenticated } from "@azure/msal-react";
+import { useIsAuth } from "@/lib/auth/useIsAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { joinCouple } from "@/lib/api/couples";
 import { ApiError } from "@/lib/api/client";
 
 export default function JoinPage() {
-  const isAuthenticated = useIsAuthenticated();
+  const isAuthenticated = useIsAuth();
   const router = useRouter();
 
   const [code, setCode] = useState("");
