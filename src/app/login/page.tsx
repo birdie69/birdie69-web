@@ -1,10 +1,9 @@
 "use client";
 
-import { useMsal } from "@azure/msal-react";
+import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { loginRequest } from "@/lib/auth/msalConfig";
-import { useIsAuth } from "@/lib/auth/useIsAuth";
 import {
   setDevIdentity,
   DEV_IDENTITIES,
@@ -29,14 +28,19 @@ const DEV_IDENTITY_LABELS: Record<DevIdentity, string> = {
 
 export default function LoginPage() {
   const { instance } = useMsal();
-  const isAuthenticated = useIsAuth();
+  // Use raw MSAL here — NOT useIsAuth(). In dev mode useIsAuth() always returns
+  // true, which would cause an immediate redirect loop before the user can pick
+  // an identity. We only want to auto-redirect if MSAL has a real session.
+  const msalAuthenticated = useIsAuthenticated();
   const router = useRouter();
 
+  // In production: redirect straight to home if already authenticated.
+  // In dev mode: stay on this page so the user can explicitly choose an identity.
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!DEV_MODE && msalAuthenticated) {
       router.replace("/");
     }
-  }, [isAuthenticated, router]);
+  }, [msalAuthenticated, router]);
 
   const handleLogin = () => {
     instance.loginRedirect(loginRequest).catch(console.error);
