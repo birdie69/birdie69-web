@@ -191,6 +191,13 @@ export default function HomePage() {
                 </span>
               </p>
 
+              <Button
+                className="w-full bg-rose-500 hover:bg-rose-600 text-white"
+                onClick={() => router.push("/question")}
+              >
+                Today&apos;s Question
+              </Button>
+
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
