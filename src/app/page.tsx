@@ -6,7 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyCouple, createInvite, leaveCouple } from "@/lib/api/couples";
 import { useIsAuth } from "@/lib/auth/useIsAuth";
+import { getDevIdentity } from "@/lib/auth/devIdentity";
 import type { CoupleDto } from "@/lib/api/types";
+
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 type CoupleState = "loading" | "none" | "pending" | "active";
 
@@ -79,6 +82,16 @@ export default function HomePage() {
           <p className="text-gray-500 dark:text-gray-400">
             Daily questions for couples
           </p>
+          {DEV_MODE && (
+            <button
+              onClick={() => router.push("/login")}
+              className="text-xs text-gray-400 underline underline-offset-2 hover:text-gray-600"
+            >
+              dev: signed in as{" "}
+              <span className="font-mono font-semibold">{getDevIdentity()}</span>
+              {" · switch"}
+            </button>
+          )}
         </div>
 
         {/* ── Unauthenticated ─────────────────────────────────────────────── */}
