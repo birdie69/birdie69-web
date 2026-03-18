@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIsAuthenticated } from "@azure/msal-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createInvite, leaveCouple } from "@/lib/api/couples";
+import { ApiError } from "@/lib/api/client";
 
 export default function InvitePage() {
-  const isAuthenticated = useIsAuthenticated();
   const router = useRouter();
 
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -17,22 +22,20 @@ export default function InvitePage() {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auth guard
   useEffect(() => {
-    if (!isAuthenticated) router.replace("/login");
-  }, [isAuthenticated, router]);
-
-  // Fetch (or generate) invite code on mount
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
     createInvite()
-      .then(({ inviteCode: code }) => {
-        setInviteCode(code);
+      .then(({ inviteCode: code }) => setInviteCode(code))
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 409) {
+          // Already in an active couple — no need to invite, go home.
+          router.replace("/");
+          return;
+        }
+        const detail = err instanceof ApiError ? ` (${err.status}: ${err.message})` : "";
+        setError(`Failed to generate invite code. Please try again.${detail}`);
       })
-      .catch(() => setError("Failed to generate invite code. Please try again."))
       .finally(() => setLoading(false));
-  }, [isAuthenticated]);
+  }, [router]);
 
   const handleCopy = async () => {
     if (!inviteCode) return;
@@ -67,8 +70,6 @@ export default function InvitePage() {
     }
   };
 
-  if (!isAuthenticated) return null;
-
   return (
     <main className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
       <Card className="w-full max-w-sm shadow-lg">
@@ -91,39 +92,43 @@ export default function InvitePage() {
                 <p className="text-xs text-gray-500 uppercase tracking-wider">
                   Your invite code
                 </p>
-                <p className="text-4xl font-mono tracking-widest font-bold text-rose-600 dark:text-rose-400 select-all">
-                  {inviteCode ?? "———"}
-                </p>
+                {inviteCode ? (
+                  <p className="text-4xl font-mono tracking-widest font-bold text-rose-600 dark:text-rose-400 select-all">
+                    {inviteCode}
+                  </p>
+                ) : (
+                  <p className="text-sm text-destructive">{error}</p>
+                )}
               </div>
 
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={handleCopy}
-                disabled={!inviteCode}
-              >
-                {copied ? "✓ Copied!" : "Copy to clipboard"}
-              </Button>
+              {inviteCode && (
+                <Button variant="outline" className="w-full" onClick={handleCopy}>
+                  {copied ? "✓ Copied!" : "Copy to clipboard"}
+                </Button>
+              )}
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && inviteCode && (
+                <p className="text-sm text-destructive">{error}</p>
+              )}
 
               <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleRegenerate}
-                  disabled={actionLoading}
-                >
-                  {actionLoading ? "Regenerating…" : "Regenerate"}
-                </Button>
-
+                {inviteCode && (
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleRegenerate}
+                    disabled={actionLoading}
+                  >
+                    {actionLoading ? "Regenerating…" : "Regenerate"}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   className="w-full text-gray-500"
                   onClick={handleCancel}
                   disabled={actionLoading}
                 >
-                  Cancel &amp; go back
+                  {actionLoading ? "Cancelling…" : "Cancel & go back"}
                 </Button>
               </div>
             </>

@@ -17,12 +17,17 @@ export class ApiError extends Error {
 
 /**
  * Returns the Bearer token to attach to every API request.
- * In dev mode (NEXT_PUBLIC_DEV_MODE=true) the server accepts the literal
- * string "dev" — no real B2C token needed.
+ * In dev mode (NEXT_PUBLIC_DEV_MODE=true) the server accepts any plain string
+ * as an identity (e.g. "dev", "alice", "bob"). The active identity is stored
+ * in localStorage and chosen on the login page.
  * In production, swap this for an MSAL acquireTokenSilent call.
  */
 function getToken(): string {
   if (process.env.NEXT_PUBLIC_DEV_MODE === "true") {
+    // Inline import avoids bundling devIdentity helpers in production
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("birdie69_dev_identity") ?? "dev";
+    }
     return "dev";
   }
   // TODO (B69-5): acquire token from MSAL instance

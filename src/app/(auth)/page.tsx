@@ -1,17 +1,18 @@
 "use client";
 
-import { useIsAuthenticated } from "@azure/msal-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getMyCouple, createInvite, leaveCouple } from "@/lib/api/couples";
+import { getDevIdentity } from "@/lib/auth/devIdentity";
 import type { CoupleDto } from "@/lib/api/types";
+
+const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 type CoupleState = "loading" | "none" | "pending" | "active";
 
 export default function HomePage() {
-  const isAuthenticated = useIsAuthenticated();
   const router = useRouter();
 
   const [couple, setCouple] = useState<CoupleDto | null>(null);
@@ -21,18 +22,21 @@ export default function HomePage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-
     getMyCouple()
       .then((data) => {
         setCouple(data);
-        if (!data) setCoupleState("none");
-        else if (data.status === "Pending") setCoupleState("pending");
-        else if (data.status === "Active") setCoupleState("active");
-        else setCoupleState("none");
+        if (!data) {
+          setCoupleState("none");
+        } else if (data.status === "Pending" || data.status === 0) {
+          setCoupleState("pending");
+        } else if (data.status === "Active" || data.status === 1) {
+          setCoupleState("active");
+        } else {
+          setCoupleState("none");
+        }
       })
       .catch(() => setCoupleState("none"));
-  }, [isAuthenticated]);
+  }, []);
 
   const handleCopy = async () => {
     if (!couple?.inviteCode) return;
@@ -46,7 +50,7 @@ export default function HomePage() {
     setError(null);
     try {
       const { inviteCode } = await createInvite();
-      setCouple((prev) => prev ? { ...prev, inviteCode } : prev);
+      setCouple((prev) => (prev ? { ...prev, inviteCode } : prev));
     } catch {
       setError("Failed to regenerate code. Please try again.");
     } finally {
@@ -79,27 +83,22 @@ export default function HomePage() {
           <p className="text-gray-500 dark:text-gray-400">
             Daily questions for couples
           </p>
+          {DEV_MODE && (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs text-gray-400"
+              onClick={() => router.push("/login")}
+            >
+              dev: signed in as{" "}
+              <span className="font-mono font-semibold ml-1">{getDevIdentity()}</span>
+              <span className="ml-1">· switch</span>
+            </Button>
+          )}
         </div>
 
-        {/* ── Unauthenticated ─────────────────────────────────────────────── */}
-        {!isAuthenticated && (
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Get started</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-500 text-sm">
-                Sign in to connect with your partner and share daily questions.
-              </p>
-              <Button className="w-full" onClick={() => router.push("/login")}>
-                Sign in to continue
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ── Loading couple state ────────────────────────────────────────── */}
-        {isAuthenticated && coupleState === "loading" && (
+        {/* ── Loading ──────────────────────────────────────────────────────── */}
+        {coupleState === "loading" && (
           <Card className="shadow-lg">
             <CardContent className="py-8 flex justify-center">
               <div className="w-6 h-6 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
@@ -107,17 +106,14 @@ export default function HomePage() {
           </Card>
         )}
 
-        {/* ── State 1: No couple ──────────────────────────────────────────── */}
-        {isAuthenticated && coupleState === "none" && (
+        {/* ── No couple ─────────────────────────────────────────────────── */}
+        {coupleState === "none" && (
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl">Connect with your partner</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button
-                className="w-full"
-                onClick={() => router.push("/invite")}
-              >
+              <Button className="w-full" onClick={() => router.push("/invite")}>
                 Invite my partner
               </Button>
               <Button
@@ -131,8 +127,8 @@ export default function HomePage() {
           </Card>
         )}
 
-        {/* ── State 2: Pending (invite sent) ─────────────────────────────── */}
-        {isAuthenticated && coupleState === "pending" && couple && (
+        {/* ── Pending ──────────────────────────────────────────────────────── */}
+        {coupleState === "pending" && couple && (
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl">Waiting for your partner</CardTitle>
@@ -142,7 +138,7 @@ export default function HomePage() {
                 <p className="text-xs text-gray-500 uppercase tracking-wider">
                   Your invite code
                 </p>
-                <p className="text-4xl font-mono tracking-widest font-bold text-rose-600 dark:text-rose-400">
+                <p className="text-4xl font-mono tracking-widest font-bold text-rose-600 dark:text-rose-400 select-all">
                   {couple.inviteCode}
                 </p>
               </div>
@@ -175,8 +171,8 @@ export default function HomePage() {
           </Card>
         )}
 
-        {/* ── State 3: Active couple ──────────────────────────────────────── */}
-        {isAuthenticated && coupleState === "active" && couple && (
+        {/* ── Active couple ─────────────────────────────────────────────── */}
+        {coupleState === "active" && couple && (
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl text-rose-600 dark:text-rose-400">
@@ -186,10 +182,15 @@ export default function HomePage() {
             <CardContent className="space-y-4">
               <p className="text-sm text-gray-500">
                 Connected with{" "}
-                <span className="font-medium text-foreground">
-                  Your partner
-                </span>
+                <span className="font-medium text-foreground">Your partner</span>
               </p>
+
+              <Button
+                className="w-full bg-rose-500 hover:bg-rose-600 text-white"
+                onClick={() => router.push("/question")}
+              >
+                {"Today's Question"}
+              </Button>
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 
