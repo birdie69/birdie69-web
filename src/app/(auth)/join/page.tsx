@@ -1,25 +1,24 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useIsAuth } from "@/lib/auth/useIsAuth";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { joinCouple } from "@/lib/api/couples";
 import { ApiError } from "@/lib/api/client";
 
 export default function JoinPage() {
-  const isAuthenticated = useIsAuth();
   const router = useRouter();
 
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Auth guard
-  useEffect(() => {
-    if (!isAuthenticated) router.replace("/login");
-  }, [isAuthenticated, router]);
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +47,6 @@ export default function JoinPage() {
     }
   };
 
-  if (!isAuthenticated) return null;
-
   return (
     <main className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
       <Card className="w-full max-w-sm shadow-lg">
@@ -66,7 +63,9 @@ export default function JoinPage() {
             <input
               type="text"
               value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 8))}
+              onChange={(e) =>
+                setCode(e.target.value.toUpperCase().slice(0, 8))
+              }
               placeholder="ABCD1234"
               maxLength={8}
               className="w-full rounded-lg border border-input bg-background px-3 py-3 text-center text-2xl font-mono tracking-widest uppercase ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"

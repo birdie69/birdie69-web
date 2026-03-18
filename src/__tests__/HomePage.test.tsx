@@ -1,33 +1,26 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import HomePage from "@/app/page";
+import HomePage from "@/app/(auth)/page";
 import type { CoupleDto } from "@/lib/api/types";
-
-const mockUseIsAuthenticated = vi.fn<[], boolean>().mockReturnValue(false);
-
-vi.mock("@azure/msal-react", () => ({
-  useIsAuthenticated: () => mockUseIsAuthenticated(),
-  useMsal: () => ({ instance: { loginRedirect: vi.fn() }, inProgress: "none" }),
-  MsalProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock("@/lib/api/couples", () => ({
-  getMyCouple: vi.fn().mockResolvedValue(null),
+  getMyCouple: vi.fn(),
   createInvite: vi.fn(),
   leaveCouple: vi.fn(),
 }));
 
-vi.mock("@/lib/api/users", () => ({
-  getMe: vi.fn().mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null }),
-  upsertMe: vi.fn(),
+vi.mock("@/lib/auth/devIdentity", () => ({
+  getDevIdentity: vi.fn().mockReturnValue("dev"),
+  hasDevIdentity: vi.fn().mockReturnValue(true),
+  setDevIdentity: vi.fn(),
+  DEV_IDENTITIES: ["dev", "alice", "bob"],
 }));
 
 import { getMyCouple } from "@/lib/api/couples";
-import { getMe } from "@/lib/api/users";
 
 const activeCouple: CoupleDto = {
   id: "couple-1",
@@ -38,34 +31,34 @@ const activeCouple: CoupleDto = {
   notificationTime: "08:00",
 };
 
-describe("HomePage (unauthenticated)", () => {
+describe("HomePage", () => {
   beforeEach(() => {
-    mockUseIsAuthenticated.mockReturnValue(false);
-    vi.mocked(getMyCouple).mockResolvedValue(null);
-    vi.mocked(getMe).mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null });
+    vi.clearAllMocks();
   });
 
   it("renders the birdie69 heading", () => {
+    vi.mocked(getMyCouple).mockReturnValue(new Promise(() => {}));
     render(<HomePage />);
     expect(screen.getByText("birdie69")).toBeInTheDocument();
   });
 
-  it("shows a sign-in prompt when not authenticated", () => {
+  it("shows loading spinner on mount", () => {
+    vi.mocked(getMyCouple).mockReturnValue(new Promise(() => {}));
     render(<HomePage />);
-    expect(screen.getByText(/sign in to continue/i)).toBeInTheDocument();
+    expect(document.querySelector(".animate-spin")).toBeTruthy();
   });
-});
 
-describe("HomePage (active couple)", () => {
-  beforeEach(() => {
-    mockUseIsAuthenticated.mockReturnValue(true);
-    vi.mocked(getMe).mockResolvedValue({ id: "user-1", displayName: "Test", avatarUrl: null });
-    vi.mocked(getMyCouple).mockResolvedValue(activeCouple);
+  it("shows 'Connect with your partner' when not in a couple", async () => {
+    vi.mocked(getMyCouple).mockResolvedValue(null);
+    render(<HomePage />);
+    await waitFor(() => {
+      expect(screen.getByText(/connect with your partner/i)).toBeInTheDocument();
+    });
   });
 
   it("shows the Today's Question button when in an active couple", async () => {
+    vi.mocked(getMyCouple).mockResolvedValue(activeCouple);
     render(<HomePage />);
-
     await waitFor(() => {
       expect(
         screen.getByRole("button", { name: /today.*question/i }),

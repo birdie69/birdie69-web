@@ -23,3 +23,9 @@ export function getDevIdentity(): DevIdentity {
 export function setDevIdentity(identity: DevIdentity): void {
   localStorage.setItem(KEY, identity);
 }
+
+/** Returns true when the user has explicitly chosen an identity on the login page. */
+export function hasDevIdentity(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(KEY) !== null;
+}

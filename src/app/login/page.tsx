@@ -1,11 +1,12 @@
 "use client";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { loginRequest } from "@/lib/auth/msalConfig";
 import {
   setDevIdentity,
+  hasDevIdentity,
   DEV_IDENTITIES,
   type DevIdentity,
 } from "@/lib/auth/devIdentity";
@@ -28,28 +29,49 @@ const DEV_IDENTITY_LABELS: Record<DevIdentity, string> = {
 
 export default function LoginPage() {
   const { instance } = useMsal();
-  // Use raw MSAL here — NOT useIsAuth(). In dev mode useIsAuth() always returns
-  // true, which would cause an immediate redirect loop before the user can pick
-  // an identity. We only want to auto-redirect if MSAL has a real session.
   const msalAuthenticated = useIsAuthenticated();
   const router = useRouter();
 
-  // In production: redirect straight to home if already authenticated.
-  // In dev mode: stay on this page so the user can explicitly choose an identity.
-  useEffect(() => {
-    if (!DEV_MODE && msalAuthenticated) {
-      router.replace("/");
-    }
-  }, [msalAuthenticated, router]);
+  /**
+   * In dev mode: check localStorage on mount.
+   *   - Identity already chosen → redirect to /  (ready = false while checking)
+   *   - No identity yet        → show picker     (ready = true after check)
+   * In prod: show the page immediately (ready = true), MSAL effect handles redirect.
+   */
+  const [ready, setReady] = useState(!DEV_MODE);
 
-  const handleLogin = () => {
-    instance.loginRedirect(loginRequest).catch(console.error);
-  };
+  useEffect(() => {
+    if (!DEV_MODE) return;
+    if (hasDevIdentity()) {
+      router.replace("/");
+    } else {
+      setReady(true);
+    }
+  }, [router]);
+
+  // Production: redirect if MSAL already has a valid session.
+  useEffect(() => {
+    if (DEV_MODE) return;
+    if (msalAuthenticated) router.replace("/");
+  }, [msalAuthenticated, router]);
 
   const handleDevLogin = (identity: DevIdentity) => {
     setDevIdentity(identity);
     router.replace("/");
   };
+
+  const handleProdLogin = () => {
+    instance.loginRedirect(loginRequest).catch(console.error);
+  };
+
+  // Show spinner while we check localStorage (dev) or wait for MSAL (prod).
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (DEV_MODE) {
     return (
@@ -59,9 +81,7 @@ export default function LoginPage() {
             <CardTitle className="text-3xl font-bold text-rose-600 dark:text-rose-400">
               birdie69
             </CardTitle>
-            <CardDescription>
-              Dev mode — pick an identity to sign in as
-            </CardDescription>
+            <CardDescription>Dev mode — pick an identity to sign in as</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {DEV_IDENTITIES.map((id) => (
@@ -95,7 +115,7 @@ export default function LoginPage() {
           <CardDescription>Sign in to connect with your partner</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button className="w-full" size="lg" onClick={handleLogin}>
+          <Button className="w-full" size="lg" onClick={handleProdLogin}>
             Sign in with birdie69
           </Button>
         </CardContent>

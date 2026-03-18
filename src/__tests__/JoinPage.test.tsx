@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import JoinPage from "@/app/join/page";
+import JoinPage from "@/app/(auth)/join/page";
 import { joinCouple } from "@/lib/api/couples";
 import { ApiError } from "@/lib/api/client";
 

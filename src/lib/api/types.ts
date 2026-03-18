@@ -1,4 +1,9 @@
-export type CoupleStatus = "Pending" | "Active" | "Disbanded" | "Cancelled";
+// The API serializes CoupleStatus as a string ("Active") after JsonStringEnumConverter
+// is configured, but older containers may return the numeric form (0, 1, 2, 3).
+// Accept both so the UI is robust during migrations.
+export type CoupleStatus =
+  | "Pending" | "Active" | "Disbanded" | "Cancelled"
+  | 0 | 1 | 2 | 3;
 
 export interface QuestionDto {
   id: string;

@@ -5,32 +5,31 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { getMe } from "@/lib/api/users";
+import { useIsAuth } from "@/lib/auth/useIsAuth";
 
 type ProfileState = "loading" | "ready" | "missing";
 
 const DEV_MODE = process.env.NEXT_PUBLIC_DEV_MODE === "true";
 
 /**
- * Protected layout:
- * 1. Waits for MSAL to settle — redirects to /login if not authenticated.
- *    In DEV_MODE this check is skipped; the API accepts "dev" as a bearer token.
- * 2. Checks whether the user has a profile in our DB:
- *    - 404 → redirects to /onboarding (first time setup)
- *    - 200 → renders children
- * Shows a spinner during both checks to prevent flash of content.
+ * Protected layout — wraps /, /invite, /join, /question.
+ *
+ * 1. Auth gate: redirects to /login when the user is not authenticated.
+ *    In dev mode: useIsAuth() returns true (bypasses MSAL entirely).
+ * 2. Profile gate: fetches GET /v1/users/me.
+ *    404 → first-time user → redirect to /onboarding.
+ *    200 → render children.
+ *
+ * Shows a spinner until both checks complete so there is no flash of content.
  */
-export default function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const msalIsAuthenticated = useIsAuthenticated();
-  const isAuthenticated = DEV_MODE || msalIsAuthenticated;
+export default function AuthLayout({ children }: { children: React.ReactNode }) {
+  const isAuthenticated = useIsAuth();
+  const msalIsAuthenticated = useIsAuthenticated(); // used for prod redirect effect only
   const { inProgress } = useMsal();
   const router = useRouter();
   const [profileState, setProfileState] = useState<ProfileState>("loading");
 
-  // Redirect to /login if MSAL finishes and user is not authenticated (skipped in dev mode)
+  // Production-only: redirect to /login when MSAL confirms the user is not signed in.
   useEffect(() => {
     if (DEV_MODE) return;
     if (!msalIsAuthenticated && inProgress === InteractionStatus.None) {
@@ -38,10 +37,9 @@ export default function AuthLayout({
     }
   }, [msalIsAuthenticated, inProgress, router]);
 
-  // Once authenticated, check whether a DB profile exists
+  // Profile check — runs once we know the user is (or is treated as) authenticated.
   useEffect(() => {
     if (profileState !== "loading") return;
-    // In dev mode skip the MSAL gate; in prod wait for MSAL to confirm auth
     if (!DEV_MODE && (!msalIsAuthenticated || inProgress !== InteractionStatus.None)) return;
 
     getMe()
@@ -54,7 +52,7 @@ export default function AuthLayout({
         }
       })
       .catch(() => {
-        // Network / unexpected error — show content anyway (graceful degradation)
+        // Network / unexpected error — let the page render; it can handle its own errors.
         setProfileState("ready");
       });
   }, [msalIsAuthenticated, inProgress, router, profileState]);
@@ -67,9 +65,7 @@ export default function AuthLayout({
     );
   }
 
-  if (profileState === "missing") {
-    return null;
-  }
+  if (profileState === "missing") return null;
 
   return <>{children}</>;
 }
