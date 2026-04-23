@@ -19,9 +19,14 @@ vi.mock("@/lib/api/answers", () => ({
   submitAnswer: vi.fn(),
 }));
 
+vi.mock("@/lib/api/streaks", () => ({
+  getMyStreak: vi.fn(),
+}));
+
 // Re-import mocked modules so we can configure them per-test
 import { getTodayQuestion, getAnswers } from "@/lib/api/questions";
 import { submitAnswer } from "@/lib/api/answers";
+import { getMyStreak } from "@/lib/api/streaks";
 
 // ── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -73,6 +78,12 @@ const revealedReveal: AnswerRevealDto = {
 describe("QuestionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Default: streak resolves to 0 so it doesn't affect other tests
+    vi.mocked(getMyStreak).mockResolvedValue({
+      currentStreak: 0,
+      longestStreak: 0,
+      lastActivityDate: null,
+    });
   });
 
   it("renders the loading spinner on mount", () => {
@@ -164,5 +175,48 @@ describe("QuestionPage", () => {
     });
     expect(screen.getByText(/your answer/i)).toBeInTheDocument();
     expect(screen.getByText(/partner.*answer/i)).toBeInTheDocument();
+  });
+
+  it("renders streak badge when currentStreak >= 7", async () => {
+    vi.mocked(getTodayQuestion).mockResolvedValue(mockQuestion);
+    vi.mocked(getAnswers).mockResolvedValue(noAnswerReveal);
+    vi.mocked(getMyStreak).mockResolvedValue({
+      currentStreak: 7,
+      longestStreak: 7,
+      lastActivityDate: "2026-04-23",
+    });
+    render(<QuestionPage />);
+    await waitFor(() => {
+      expect(screen.getAllByText(/7-day streak/i).length).toBeGreaterThan(0);
+    });
+  });
+
+  it("does not render streak badge when currentStreak === 0", async () => {
+    vi.mocked(getTodayQuestion).mockResolvedValue(mockQuestion);
+    vi.mocked(getAnswers).mockResolvedValue(noAnswerReveal);
+    vi.mocked(getMyStreak).mockResolvedValue({
+      currentStreak: 0,
+      longestStreak: 5,
+      lastActivityDate: null,
+    });
+    render(<QuestionPage />);
+    await waitFor(() => {
+      expect(
+        screen.getByText("What made you laugh today?"),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/streak/i)).not.toBeInTheDocument();
+  });
+
+  it("still renders question when getMyStreak fails", async () => {
+    vi.mocked(getTodayQuestion).mockResolvedValue(mockQuestion);
+    vi.mocked(getAnswers).mockResolvedValue(noAnswerReveal);
+    vi.mocked(getMyStreak).mockRejectedValue(new Error("network error"));
+    render(<QuestionPage />);
+    await waitFor(() => {
+      expect(
+        screen.getByText("What made you laugh today?"),
+      ).toBeInTheDocument();
+    });
   });
 });

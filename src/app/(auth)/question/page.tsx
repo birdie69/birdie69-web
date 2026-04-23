@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getTodayQuestion, getAnswers } from "@/lib/api/questions";
 import { submitAnswer } from "@/lib/api/answers";
+import { getMyStreak } from "@/lib/api/streaks";
 import { ApiError } from "@/lib/api/client";
-import type { QuestionDto, AnswerRevealDto } from "@/lib/api/types";
+import type { QuestionDto, AnswerRevealDto, StreakDto } from "@/lib/api/types";
+import StreakBadge from "@/components/StreakBadge";
 
 type PageState =
   | { kind: "loading" }
@@ -63,9 +65,16 @@ export default function QuestionPage() {
   const [answerText, setAnswerText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [streak, setStreak] = useState<StreakDto | null>(null);
 
   const loadPage = useCallback(async () => {
     setState({ kind: "loading" });
+
+    getMyStreak()
+      .then(setStreak)
+      .catch(() => {
+        // Streak fetch failure must not block question rendering
+      });
 
     let question: QuestionDto | null;
     try {
@@ -191,6 +200,7 @@ export default function QuestionPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
         <div className="w-full max-w-md space-y-4">
+          <StreakBadge currentStreak={streak?.currentStreak ?? 0} />
           <Card className="shadow-lg">
             <CardContent className="pt-6 space-y-4">
               <QuestionHeader question={state.question} />
@@ -237,6 +247,7 @@ export default function QuestionPage() {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
         <div className="w-full max-w-md space-y-4">
+          <StreakBadge currentStreak={streak?.currentStreak ?? 0} />
           <Card className="shadow-lg">
             <CardContent className="pt-6">
               <QuestionHeader question={state.question} />
@@ -274,6 +285,7 @@ export default function QuestionPage() {
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-br from-rose-50 to-pink-100 dark:from-gray-900 dark:to-gray-800">
       <div className="w-full max-w-2xl space-y-4">
+        <StreakBadge currentStreak={streak?.currentStreak ?? 0} />
         <Card className="shadow-lg">
           <CardContent className="pt-6">
             <QuestionHeader question={state.question} />
