@@ -48,16 +48,48 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ---
 
-## Capacitor (mobile)
+## Mobile Development
 
-After `npm run build`, the static output is in `out/`. Add native platforms:
+The web app runs as a native iOS/Android app via Capacitor.
+
+### Prerequisites
+
+- iOS: Xcode 15+ (macOS only) — ensure `xcode-select` points to Xcode:
+  ```bash
+  sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+  ```
+- Android: Android Studio with an AVD configured (Pixel 8, API 34 recommended)
+- Both: Node.js 20+ (use `nvm use` in the repo root)
+
+### Build and sync
 
 ```bash
-npx cap add ios
-npx cap add android
-npx cap sync
-npx cap open ios      # opens Xcode
-npx cap open android  # opens Android Studio
+npm run build        # creates out/ directory (static export)
+npx cap sync         # copies out/ to native projects + runs pod install
+```
+
+> **Note:** If `npx cap sync` fails with an `xcode-select` error, set
+> `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` in your shell
+> or run `sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer`.
+
+### Run in simulator / emulator
+
+```bash
+npx cap open ios           # opens Xcode → select simulator → Cmd+R
+npx cap open android       # opens Android Studio → select AVD → Run
+```
+
+### Verified builds (Sprint 3)
+
+- iOS: iPhone 16 Simulator, iOS 18.x ✅
+- Android: Pixel 8 Emulator, API 34 ✅
+
+### Live reload (development)
+
+Update `capacitor.config.ts` `server.url` to `http://localhost:3000`, then:
+
+```bash
+npx cap run ios --livereload
 ```
 
 ---

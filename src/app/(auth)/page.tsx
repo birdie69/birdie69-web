@@ -192,6 +192,14 @@ export default function HomePage() {
                 {"Today's Question"}
               </Button>
 
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/settings")}
+              >
+                ⚙ Settings
+              </Button>
+
               {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button
