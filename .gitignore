@@ -35,6 +35,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Capacitor native projects (generated — not committed)
-/ios/
-/android/
+# Capacitor native projects — commit the project, exclude build artifacts
+ios/App/Pods/
+ios/.DS_Store
+android/build/
+android/.gradle/
+android/app/build/
+android/local.properties

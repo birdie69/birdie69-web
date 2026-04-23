@@ -4,7 +4,8 @@ import { useIsAuthenticated, useMsal } from "@azure/msal-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InteractionStatus } from "@azure/msal-browser";
-import { getMe } from "@/lib/api/users";
+import { getMe, setNotificationToken } from "@/lib/api/users";
+import { registerForPushNotifications } from "@/lib/pushNotifications";
 import { useIsAuth } from "@/lib/auth/useIsAuth";
 
 type ProfileState = "loading" | "ready" | "missing";
@@ -49,6 +50,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           router.replace("/onboarding");
         } else {
           setProfileState("ready");
+          // Register for push notifications; errors must not block rendering
+          registerForPushNotifications((token) =>
+            setNotificationToken(token),
+          ).catch(() => {});
         }
       })
       .catch(() => {

@@ -27,3 +27,14 @@ export async function upsertMe(
     body: JSON.stringify({ displayName, avatarUrl }),
   });
 }
+
+/**
+ * Register or update the FCM device token for the current user.
+ * Called after successful push notification registration on native platforms.
+ */
+export async function setNotificationToken(token: string): Promise<void> {
+  return apiFetch<void>("/v1/users/me/notification-token", {
+    method: "PUT",
+    body: JSON.stringify({ token }),
+  });
+}
