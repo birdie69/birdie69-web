@@ -42,3 +42,9 @@ export interface CoupleDto {
   status: CoupleStatus;
   notificationTime: string;
 }
+
+export interface StreakDto {
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: string | null;
+}
